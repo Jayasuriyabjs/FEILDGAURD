@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FIELDGUARD Safety System</title>
 <style>
+:root { color-scheme: light; }
 body {
   font-family: Arial, sans-serif;
   background: #eef2f3;
@@ -12,11 +13,7 @@ body {
   text-align: center;
   margin: 0;
 }
-header {
-  background: #167d55;
-  color: white;
-  padding: 24px 10px;
-}
+header { background: #167d55; color: white; padding: 24px 10px; }
 .container { max-width: 700px; margin: auto; padding: 15px; }
 .card {
   background: white; padding: 20px; margin: 15px 0;
@@ -26,6 +23,7 @@ button {
   background: #167d55; color: white; border: 0; border-radius: 7px;
   padding: 12px 18px; margin: 5px; cursor: pointer;
 }
+button:focus-visible { outline: 3px solid #222; outline-offset: 3px; }
 .sos { background: #d93025; }
 .status { font-weight: bold; color: #167d55; }
 .note { font-size: 13px; color: #666; }
@@ -75,7 +73,7 @@ footer { padding: 20px; color: #666; font-size: 13px; }
     <h2>🔔 Notifications</h2>
     <p id="notificationStatus" aria-live="polite">Notifications are not enabled yet.</p>
     <button onclick="enableNotifications()">Enable Notifications</button>
-    <p class="note">Browser notifications generally require this site to be served over HTTPS and permission to be granted. Alerts run only when this website receives or triggers an event.</p>
+    <p class="note">Desktop notifications require HTTPS and browser permission. The page also displays an in-page alert as a fallback.</p>
   </div>
 </div>
 
@@ -83,24 +81,32 @@ footer { padding: 20px; color: #666; font-size: 13px; }
 
 <script>
 function notify(title, message) {
+  // Always provide an on-page fallback so the alert is visible.
+  alert(title + "\n\n" + message);
+
   if (!("Notification" in window)) {
-    alert(title + "\n" + message + "\nThis browser does not support notifications.");
+    console.warn("Browser notifications are not supported.");
     return;
   }
 
-  if (Notification.permission === "granted") {
-    try {
-      new Notification(title, {
-        body: message,
-        tag: "fieldguard-alert",
-        renotify: true
-      });
-    } catch (error) {
-      alert(title + "\n" + message);
-    }
-  } else {
-    alert(title + "\n" + message +
-      "\nTo receive pop-up alerts, click Enable Notifications and allow permission.");
+  if (Notification.permission !== "granted") {
+    console.warn("Notification permission is not granted.");
+    return;
+  }
+
+  try {
+    const notification = new Notification(title, {
+      body: message,
+      tag: "fieldguard-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      renotify: true
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  } catch (error) {
+    console.error("Desktop notification failed:", error);
   }
 }
 
@@ -108,13 +114,13 @@ async function enableNotifications() {
   const status = document.getElementById("notificationStatus");
 
   if (!("Notification" in window)) {
-    status.textContent = "This browser does not support notifications.";
+    status.textContent = "This browser does not support desktop notifications.";
     alert(status.textContent);
     return;
   }
 
   if (!window.isSecureContext) {
-    status.textContent = "Open the published HTTPS website to enable notifications.";
+    status.textContent = "Open the published HTTPS GitHub Pages website.";
     alert(status.textContent);
     return;
   }
@@ -126,20 +132,18 @@ async function enableNotifications() {
     }
 
     if (permission === "granted") {
-      status.textContent = "Notifications enabled on this browser.";
-      new Notification("FIELDGUARD", {
-        body: "Notifications enabled successfully.",
-        tag: "fieldguard-enabled"
-      });
+      status.textContent = "Notifications are enabled for this browser.";
+      notify("FIELDGUARD", "Notifications enabled successfully.");
     } else if (permission === "denied") {
-      status.textContent = "Notifications are blocked. Allow them in your browser site settings.";
+      status.textContent = "Notifications are blocked. Change permission in Chrome site settings.";
       alert(status.textContent);
     } else {
-      status.textContent = "Permission was not granted. Try enabling notifications again.";
+      status.textContent = "Permission was not granted. Click Enable Notifications and try again.";
     }
   } catch (error) {
     status.textContent = "Could not enable notifications in this browser.";
     console.error("Notification permission error:", error);
+    alert(status.textContent);
   }
 }
 
@@ -170,6 +174,8 @@ document.getElementById("environment").textContent =
   "Temperature: 29°C (demo) | Pressure: 1008 hPa (demo)";
 </script>
 
+<!-- Firebase listener template. Replace the placeholder API key with your web app's key.
+     Database access remains governed by Firebase rules; do not make the database public. -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
@@ -185,16 +191,13 @@ const firebaseConfig = {
 try {
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
-
   onValue(ref(database, "fieldguard"), (snapshot) => {
     const data = snapshot.val();
     if (!data) {
       console.log("Waiting for authorized FIELDGUARD sensor data...");
       return;
     }
-
     console.log("FIELDGUARD sensor data:", data);
-    // Live UI mapping should be added after the trusted data schema is defined.
   }, (error) => {
     console.error("Firebase read error:", error.message);
   });
