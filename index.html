@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,65 +17,53 @@ header {
   color: white;
   padding: 24px 10px;
 }
-.container {
-  max-width: 700px;
-  margin: auto;
-  padding: 15px;
-}
+.container { max-width: 700px; margin: auto; padding: 15px; }
 .card {
-  background: white;
-  padding: 20px;
-  margin: 15px 0;
-  border-radius: 12px;
-  box-shadow: 0 2px 7px #ccc;
+  background: white; padding: 20px; margin: 15px 0;
+  border-radius: 12px; box-shadow: 0 2px 7px #ccc;
 }
 button {
-  background: #167d55;
-  color: white;
-  border: 0;
-  border-radius: 7px;
-  padding: 12px 18px;
-  margin: 5px;
-  cursor: pointer;
+  background: #167d55; color: white; border: 0; border-radius: 7px;
+  padding: 12px 18px; margin: 5px; cursor: pointer;
 }
 .sos { background: #d93025; }
 .status { font-weight: bold; color: #167d55; }
+.note { font-size: 13px; color: #666; }
 footer { padding: 20px; color: #666; font-size: 13px; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>🛡️ FIELDGUARD</h1>
-  <p>Smart Worker & Trekker Safety System</p>
+  <p>Smart Worker &amp; Trekker Safety System</p>
 </header>
 
 <div class="container">
-  <p><strong>Demo Mode:</strong> Sensor values are simulated.</p>
+  <p><strong>Demo Mode:</strong> Sensor values and alerts are simulated.</p>
 
   <div class="card">
     <h2>🚨 Emergency SOS</h2>
-    <p id="status" class="status">SAFE</p>
+    <p id="status" class="status" aria-live="polite">SAFE</p>
     <button class="sos" onclick="sosAlert()">TRIGGER SOS</button>
     <button onclick="resetSystem()">Reset</button>
   </div>
 
   <div class="card">
     <h2>🔥 Gas Sensor</h2>
-    <p id="gas">Waiting for demo reading</p>
+    <p id="gas" aria-live="polite">Waiting for demo reading</p>
     <button onclick="gasAlert()">Test Gas Warning</button>
   </div>
 
   <div class="card">
     <h2>🧍 Motion Detection</h2>
-    <p id="motion">Normal (demo)</p>
+    <p id="motion" aria-live="polite">Normal (demo)</p>
     <button onclick="fallAlert()">Test Fall Warning</button>
   </div>
 
   <div class="card">
     <h2>📍 GPS Location</h2>
     <p id="gps">Waiting for GPS connection</p>
-    <p><a id="map" href="#" target="_blank" hidden>View location on map</a></p>
+    <p><a id="map" href="#" target="_blank" rel="noopener" hidden>View location on map</a></p>
   </div>
 
   <div class="card">
@@ -86,43 +73,78 @@ footer { padding: 20px; color: #666; font-size: 13px; }
 
   <div class="card">
     <h2>🔔 Notifications</h2>
-    <p>Allow notifications to receive alerts while this website is open.</p>
+    <p id="notificationStatus" aria-live="polite">Notifications are not enabled yet.</p>
     <button onclick="enableNotifications()">Enable Notifications</button>
+    <p class="note">Browser notifications generally require this site to be served over HTTPS and permission to be granted. Alerts run only when this website receives or triggers an event.</p>
   </div>
 </div>
 
-<footer>
-  FIELDGUARD Prototype | Demo only — not a certified safety device
-</footer>
+<footer>FIELDGUARD Prototype | Demo only — not a certified safety device</footer>
 
 <script>
 function notify(title, message) {
-  if ("Notification" in window &&
-      Notification.permission === "granted") {
-    new Notification(title, { body: message });
-  } else {
-    alert(title + "\n" + message +
-      "\nEnable browser notifications for pop-up alerts.");
-  }
-}
-
-function enableNotifications() {
   if (!("Notification" in window)) {
-    alert("This browser does not support notifications.");
+    alert(title + "\n" + message + "\nThis browser does not support notifications.");
     return;
   }
 
-  Notification.requestPermission().then(permission => {
-    if (permission === "granted") {
-      notify("FIELDGUARD", "Notifications enabled!");
-    } else {
-      alert("Notification permission was not granted.");
+  if (Notification.permission === "granted") {
+    try {
+      new Notification(title, {
+        body: message,
+        tag: "fieldguard-alert",
+        renotify: true
+      });
+    } catch (error) {
+      alert(title + "\n" + message);
     }
-  });
+  } else {
+    alert(title + "\n" + message +
+      "\nTo receive pop-up alerts, click Enable Notifications and allow permission.");
+  }
+}
+
+async function enableNotifications() {
+  const status = document.getElementById("notificationStatus");
+
+  if (!("Notification" in window)) {
+    status.textContent = "This browser does not support notifications.";
+    alert(status.textContent);
+    return;
+  }
+
+  if (!window.isSecureContext) {
+    status.textContent = "Open the published HTTPS website to enable notifications.";
+    alert(status.textContent);
+    return;
+  }
+
+  try {
+    let permission = Notification.permission;
+    if (permission === "default") {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission === "granted") {
+      status.textContent = "Notifications enabled on this browser.";
+      new Notification("FIELDGUARD", {
+        body: "Notifications enabled successfully.",
+        tag: "fieldguard-enabled"
+      });
+    } else if (permission === "denied") {
+      status.textContent = "Notifications are blocked. Allow them in your browser site settings.";
+      alert(status.textContent);
+    } else {
+      status.textContent = "Permission was not granted. Try enabling notifications again.";
+    }
+  } catch (error) {
+    status.textContent = "Could not enable notifications in this browser.";
+    console.error("Notification permission error:", error);
+  }
 }
 
 function sosAlert() {
-  document.getElementById("status").textContent = "SOS ACTIVATED!";
+  document.getElementById("status").textContent = "SOS ACTIVATED (DEMO)!";
   document.getElementById("status").style.color = "red";
   notify("FIELDGUARD SOS", "Emergency SOS activated in demo mode.");
 }
@@ -148,37 +170,37 @@ document.getElementById("environment").textContent =
   "Temperature: 29°C (demo) | Pressure: 1008 hPa (demo)";
 </script>
 
-  <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import {
-    getDatabase,
-    ref,
-    onValue
-  } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDDwuk1FDQ6Z2ctstN2Sgr7YOQfcL8d6SY",
-    authDomain: "fieldguard-b69b5.firebaseapp.com",
-    databaseURL: "https://fieldguard-b69b5-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "fieldguard-b69b5",
-    appId: "1:584723760586:web:5eb5e9f52fc7604f503b33"
-  };
+const firebaseConfig = {
+  apiKey: "REPLACE_WITH_YOUR_FIREBASE_WEB_API_KEY",
+  authDomain: "fieldguard-b69b5.firebaseapp.com",
+  databaseURL: "https://fieldguard-b69b5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "fieldguard-b69b5",
+  appId: "1:584723760586:web:5eb5e9f52fc7604f503b33"
+};
 
+try {
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
 
   onValue(ref(database, "fieldguard"), (snapshot) => {
     const data = snapshot.val();
-
     if (!data) {
-      console.log("Waiting for FIELDGUARD sensor data...");
+      console.log("Waiting for authorized FIELDGUARD sensor data...");
       return;
     }
 
     console.log("FIELDGUARD sensor data:", data);
+    // Live UI mapping should be added after the trusted data schema is defined.
   }, (error) => {
     console.error("Firebase read error:", error.message);
   });
+} catch (error) {
+  console.error("Firebase setup error:", error);
+}
 </script>
 </body>
 </html>
