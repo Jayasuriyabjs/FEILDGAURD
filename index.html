@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIELDGUARD Safety System</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #eef2f3;
+  color: #222;
+  text-align: center;
+  margin: 0;
+}
+header {
+  background: #167d55;
+  color: white;
+  padding: 24px 10px;
+}
+.container {
+  max-width: 700px;
+  margin: auto;
+  padding: 15px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 7px #ccc;
+}
+button {
+  background: #167d55;
+  color: white;
+  border: 0;
+  border-radius: 7px;
+  padding: 12px 18px;
+  margin: 5px;
+  cursor: pointer;
+}
+.sos { background: #d93025; }
+.status { font-weight: bold; color: #167d55; }
+footer { padding: 20px; color: #666; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ FIELDGUARD</h1>
+  <p>Smart Worker & Trekker Safety System</p>
+</header>
+
+<div class="container">
+  <p><strong>Demo Mode:</strong> Sensor values are simulated.</p>
+
+  <div class="card">
+    <h2>🚨 Emergency SOS</h2>
+    <p id="status" class="status">SAFE</p>
+    <button class="sos" onclick="sosAlert()">TRIGGER SOS</button>
+    <button onclick="resetSystem()">Reset</button>
+  </div>
+
+  <div class="card">
+    <h2>🔥 Gas Sensor</h2>
+    <p id="gas">Waiting for demo reading</p>
+    <button onclick="gasAlert()">Test Gas Warning</button>
+  </div>
+
+  <div class="card">
+    <h2>🧍 Motion Detection</h2>
+    <p id="motion">Normal (demo)</p>
+    <button onclick="fallAlert()">Test Fall Warning</button>
+  </div>
+
+  <div class="card">
+    <h2>📍 GPS Location</h2>
+    <p id="gps">Waiting for GPS connection</p>
+    <p><a id="map" href="#" target="_blank" hidden>View location on map</a></p>
+  </div>
+
+  <div class="card">
+    <h2>🌡️ Environment</h2>
+    <p id="environment">Waiting for sensor connection</p>
+  </div>
+
+  <div class="card">
+    <h2>🔔 Notifications</h2>
+    <p>Allow notifications to receive alerts while this website is open.</p>
+    <button onclick="enableNotifications()">Enable Notifications</button>
+  </div>
+</div>
+
+<footer>
+  FIELDGUARD Prototype | Demo only — not a certified safety device
+</footer>
+
+<script>
+function notify(title, message) {
+  if ("Notification" in window &&
+      Notification.permission === "granted") {
+    new Notification(title, { body: message });
+  } else {
+    alert(title + "\n" + message +
+      "\nEnable browser notifications for pop-up alerts.");
+  }
+}
+
+function enableNotifications() {
+  if (!("Notification" in window)) {
+    alert("This browser does not support notifications.");
+    return;
+  }
+
+  Notification.requestPermission().then(permission => {
+    if (permission === "granted") {
+      notify("FIELDGUARD", "Notifications enabled!");
+    } else {
+      alert("Notification permission was not granted.");
+    }
+  });
+}
+
+function sosAlert() {
+  document.getElementById("status").textContent = "SOS ACTIVATED!";
+  document.getElementById("status").style.color = "red";
+  notify("FIELDGUARD SOS", "Emergency SOS activated in demo mode.");
+}
+
+function gasAlert() {
+  document.getElementById("gas").textContent = "WARNING (DEMO)";
+  notify("FIELDGUARD GAS WARNING", "Simulated gas warning detected.");
+}
+
+function fallAlert() {
+  document.getElementById("motion").textContent = "FALL ALERT (DEMO)";
+  notify("FIELDGUARD FALL ALERT", "A simulated fall was detected.");
+}
+
+function resetSystem() {
+  document.getElementById("status").textContent = "SAFE";
+  document.getElementById("status").style.color = "#167d55";
+  document.getElementById("gas").textContent = "Waiting for demo reading";
+  document.getElementById("motion").textContent = "Normal (demo)";
+}
+
+document.getElementById("environment").textContent =
+  "Temperature: 29°C (demo) | Pressure: 1008 hPa (demo)";
+</script>
+</body>
+</html>
